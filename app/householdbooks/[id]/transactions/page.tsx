@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -22,6 +22,8 @@ import { useCategoryBudget } from '@/hooks/useCategoryBudget';
 import { deleteTransaction, assignCategory } from '@/services/transactionService';
 import TransactionItem from '@/components/transactions/TransactionItem';
 import TransactionList from '@/components/transactions/TransactionList';
+import TransactionStatistics from '@/components/transactions/TransactionStatistics';
+import MonthSelector from '@/components/transactions/MonthSelector';
 import CategoryCard from '@/components/categories/CategoryCard';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import ErrorBanner from '@/components/ui/ErrorBanner';
@@ -82,8 +84,8 @@ export default function TransactionsPage() {
   const { categories, loading: categoriesLoading } = useCategories(authedBookId);
   const { transactions, loading: transactionsLoading, error: transactionsError } = useTransactions(authedBookId);
 
-  const categoryBudgetSummaries = useCategoryBudget(categories, transactions);
-
+  const [selectedMonth, setSelectedMonth] = useState<number>(() => new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear());
   const [transactionIdPendingDeletion, setTransactionIdPendingDeletion] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState('');
   const [activeDragTransaction, setActiveDragTransaction] = useState<Transaction | null>(null);
@@ -92,6 +94,15 @@ export default function TransactionsPage() {
 
   const displayedTransactions = optimisticTransactions ?? transactions;
 
+  const filteredTransactions = useMemo(() => {
+    return displayedTransactions.filter((transaction) => {
+      const date = transaction.date.toDate();
+      return date.getMonth() === selectedMonth && date.getFullYear() === selectedYear;
+    });
+  }, [displayedTransactions, selectedMonth, selectedYear]);
+
+  const categoryBudgetSummaries = useCategoryBudget(categories, filteredTransactions);
+
   const pointerSensor = useSensor(PointerSensor, {
     activationConstraint: { distance: 8 },
   });
@@ -99,7 +110,14 @@ export default function TransactionsPage() {
 
   if (loading || !user) return null;
 
-  const uncategorisedTransactions = displayedTransactions.filter(
+  const totalIncomeCents = filteredTransactions
+    .filter((transaction) => transaction.type === 'income')
+    .reduce((sum, transaction) => sum + transaction.amountCents, 0);
+  const totalExpenseCents = filteredTransactions
+    .filter((transaction) => transaction.type === 'expense')
+    .reduce((sum, transaction) => sum + transaction.amountCents, 0);
+  const balanceCents = totalIncomeCents - totalExpenseCents;
+  const uncategorisedTransactions = filteredTransactions.filter(
     (transaction) => !transaction.categoryId,
   );
 
@@ -161,25 +179,30 @@ export default function TransactionsPage() {
       <Navbar />
 
       <main className="max-w-5xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
           <div>
-            <button
-              onClick={() => router.push(`/householdbooks/${bookId}`)}
-              className="text-sm text-slate-500 hover:text-slate-700 font-medium transition-colors mb-1 flex items-center gap-1"
-            >
-              ← Categories
-            </button>
-            <h1 className="text-xl font-bold text-slate-900">Transactions</h1>
+            <h1 className="text-3xl font-bold text-slate-900">Transactions</h1>
           </div>
-          <Link
-            href={`/householdbooks/${bookId}/transactions/new`}
-            className="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            New transaction
-          </Link>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+            <Link
+              href={`/householdbooks/${bookId}/categories/new`}
+              className="inline-flex items-center gap-2 bg-slate-600 hover:bg-slate-700 text-white text-base font-semibold px-5 py-3 rounded-2xl transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              New category
+            </Link>
+            <Link
+              href={`/householdbooks/${bookId}/transactions/new`}
+              className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-base font-semibold px-5 py-3 rounded-2xl transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              New transaction
+            </Link>
+          </div>
         </div>
 
         {deleteError && (
@@ -192,6 +215,23 @@ export default function TransactionsPage() {
             <ErrorBanner message="Failed to load transactions." />
           </div>
         )}
+
+        <div className="grid gap-4 mb-6">
+          <MonthSelector
+            month={selectedMonth}
+            year={selectedYear}
+            onChange={({ month, year }) => {
+              setSelectedMonth(month);
+              setSelectedYear(year);
+            }}
+          />
+          <TransactionStatistics
+            totalIncomeCents={totalIncomeCents}
+            totalExpenseCents={totalExpenseCents}
+            balanceCents={balanceCents}
+            transactionCount={filteredTransactions.length}
+          />
+        </div>
 
         {isLoading ? (
           <div className="space-y-3">
@@ -232,7 +272,7 @@ export default function TransactionsPage() {
                           dragOverCategoryId={dragOverDroppableId}
                         />
                         <ul className="mt-2 ml-2 space-y-1.5">
-                          {displayedTransactions
+                          {filteredTransactions
                             .filter((transaction) => transaction.categoryId === summary.id)
                             .map((transaction) => (
                               <li key={transaction.id}>

@@ -36,7 +36,7 @@ export default function NewCategoryPage() {
         },
         user!.uid,
       );
-      router.push(`/householdbooks/${bookId}`);
+      router.push(`/householdbooks/${bookId}/transactions`);
     } catch {
       setSubmitError('Something went wrong. Please try again.');
       setSubmitting(false);
@@ -57,7 +57,7 @@ export default function NewCategoryPage() {
           <CategoryForm
             submitting={submitting}
             onSubmit={handleSubmit}
-            onCancel={() => router.push(`/householdbooks/${bookId}`)}
+            onCancel={() => router.push(`/householdbooks/${bookId}/transactions`)}
           />
         </div>
       </main>

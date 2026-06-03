@@ -32,7 +32,7 @@ export default function TransactionList({
   }
 
   return (
-    <ul className="space-y-2">
+    <ul className="space-y-3">
       {transactions.map((transaction) => (
         <li key={transaction.id}>
           <TransactionItem

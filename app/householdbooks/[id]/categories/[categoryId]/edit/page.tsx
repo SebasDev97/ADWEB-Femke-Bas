@@ -56,7 +56,7 @@ export default function EditCategoryPage() {
         maxBudget: euroStringToCents(formValues.maxBudgetEuros),
         endDate,
       });
-      router.push(`/householdbooks/${bookId}`);
+      router.push(`/householdbooks/${bookId}/transactions`);
     } catch {
       setSubmitError('Something went wrong. Please try again.');
       setSubmitting(false);
@@ -84,7 +84,7 @@ export default function EditCategoryPage() {
               initial={initialFormValues}
               submitting={submitting}
               onSubmit={handleSubmit}
-              onCancel={() => router.push(`/householdbooks/${bookId}`)}
+              onCancel={() => router.push(`/householdbooks/${bookId}/transactions`)}
             />
           </div>
         )}
