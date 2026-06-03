@@ -36,11 +36,17 @@ function DroppableCategoryCard({
   bookId,
   onDelete,
   dragOverCategoryId,
+  isCollapsed,
+  transactionCount,
+  onToggleCollapse,
 }: {
   summary: CategoryBudgetSummary;
   bookId: string;
   onDelete: (categoryId: string) => void;
   dragOverCategoryId: string | null;
+  isCollapsed: boolean;
+  transactionCount: number;
+  onToggleCollapse: () => void;
 }) {
   const { setNodeRef } = useDroppable({ id: summary.id });
   return (
@@ -50,6 +56,9 @@ function DroppableCategoryCard({
         bookId={bookId}
         onDelete={onDelete}
         isDragOver={dragOverCategoryId === summary.id}
+        isCollapsed={isCollapsed}
+        transactionCount={transactionCount}
+        onToggleCollapse={onToggleCollapse}
       />
     </div>
   );
@@ -86,6 +95,7 @@ export default function TransactionsPage() {
 
   const [selectedMonth, setSelectedMonth] = useState<number>(() => new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear());
+  const [collapsedCategoryIds, setCollapsedCategoryIds] = useState<string[]>([]);
   const [transactionIdPendingDeletion, setTransactionIdPendingDeletion] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState('');
   const [activeDragTransaction, setActiveDragTransaction] = useState<Transaction | null>(null);
@@ -102,6 +112,14 @@ export default function TransactionsPage() {
   }, [displayedTransactions, selectedMonth, selectedYear]);
 
   const categoryBudgetSummaries = useCategoryBudget(categories, filteredTransactions);
+
+  function toggleCategoryCollapse(categoryId: string) {
+    setCollapsedCategoryIds((current) =>
+      current.includes(categoryId)
+        ? current.filter((id) => id !== categoryId)
+        : [...current, categoryId],
+    );
+  }
 
   const pointerSensor = useSensor(PointerSensor, {
     activationConstraint: { distance: 8 },
@@ -263,36 +281,45 @@ export default function TransactionsPage() {
                   </p>
                 ) : (
                   <ul className="space-y-3">
-                    {categoryBudgetSummaries.map((summary) => (
-                      <li key={summary.id}>
-                        <DroppableCategoryCard
-                          summary={summary}
-                          bookId={bookId}
-                          onDelete={(categoryId) => setTransactionIdPendingDeletion(categoryId)}
-                          dragOverCategoryId={dragOverDroppableId}
-                        />
-                        <ul className="mt-2 ml-2 space-y-1.5">
-                          {filteredTransactions
-                            .filter((transaction) => transaction.categoryId === summary.id)
-                            .map((transaction) => (
-                              <li key={transaction.id}>
-                                <TransactionItem
-                                  transaction={transaction}
-                                  onEdit={(transaction) =>
-                                    router.push(
-                                      `/householdbooks/${bookId}/transactions/${transaction.id}/edit`,
-                                    )
-                                  }
-                                  onDelete={(transactionId) =>
-                                    setTransactionIdPendingDeletion(transactionId)
-                                  }
-                                  draggable
-                                />
-                              </li>
-                            ))}
-                        </ul>
-                      </li>
-                    ))}
+                    {categoryBudgetSummaries.map((summary) => {
+                      const isCollapsed = collapsedCategoryIds.includes(summary.id);
+                      const categoryTransactions = filteredTransactions.filter(
+                        (transaction) => transaction.categoryId === summary.id,
+                      );
+                      return (
+                        <li key={summary.id}>
+                          <DroppableCategoryCard
+                            summary={summary}
+                            bookId={bookId}
+                            onDelete={(categoryId) => setTransactionIdPendingDeletion(categoryId)}
+                            dragOverCategoryId={dragOverDroppableId}
+                            isCollapsed={isCollapsed}
+                            onToggleCollapse={() => toggleCategoryCollapse(summary.id)}
+                            transactionCount={categoryTransactions.length}
+                          />
+                          {!isCollapsed && (
+                            <ul className="mt-2 ml-2 space-y-1.5">
+                              {categoryTransactions.map((transaction) => (
+                                <li key={transaction.id}>
+                                  <TransactionItem
+                                    transaction={transaction}
+                                    onEdit={(transaction) =>
+                                      router.push(
+                                        `/householdbooks/${bookId}/transactions/${transaction.id}/edit`,
+                                      )
+                                    }
+                                    onDelete={(transactionId) =>
+                                      setTransactionIdPendingDeletion(transactionId)
+                                    }
+                                    draggable
+                                  />
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </div>
