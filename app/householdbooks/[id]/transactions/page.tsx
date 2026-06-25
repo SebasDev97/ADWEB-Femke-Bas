@@ -26,6 +26,7 @@ import TransactionStatistics from '@/components/transactions/TransactionStatisti
 import MonthSelector from '@/components/transactions/MonthSelector';
 import CategoryCard from '@/components/categories/CategoryCard';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import CategoryCharts from '@/components/categories/CategoryCharts';
 import ErrorBanner from '@/components/ui/ErrorBanner';
 import Navbar from '@/components/Navbar';
 import type { Transaction } from '@/types/transaction';
@@ -112,6 +113,38 @@ export default function TransactionsPage() {
   }, [displayedTransactions, selectedMonth, selectedYear]);
 
   const categoryBudgetSummaries = useCategoryBudget(categories, filteredTransactions);
+
+  const dailyChartData = useMemo(() => {
+    if (!filteredTransactions || filteredTransactions.length === 0) {
+      return [];
+    }
+
+    const dailyTotals = new Map<string, { income: number; expenses: number }>();
+    const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+
+    // Initialiseer alle dagen van de maand zodat de grafiek een continue as heeft
+    for (let i = 1; i <= daysInMonth; i++) {
+      dailyTotals.set(String(i), { income: 0, expenses: 0 });
+    }
+
+    filteredTransactions.forEach((transaction) => {
+      const date = transaction.date.toDate();
+      const day = String(date.getDate());
+
+      const currentTotals = dailyTotals.get(day)!;
+      if (transaction.type === 'income') {
+        currentTotals.income += transaction.amountCents;
+      } else {
+        currentTotals.expenses += transaction.amountCents;
+      }
+    });
+
+    return Array.from(dailyTotals.entries()).map(([day, totals]) => ({
+      day: day,
+      income: totals.income / 100,
+      expenses: totals.expenses / 100,
+    }));
+  }, [filteredTransactions, selectedMonth, selectedYear]);
 
   function toggleCategoryCollapse(categoryId: string) {
     setCollapsedCategoryIds((current) =>
@@ -249,6 +282,10 @@ export default function TransactionsPage() {
             balanceCents={balanceCents}
             transactionCount={filteredTransactions.length}
           />
+        </div>
+
+        <div className="mb-8">
+          <CategoryCharts summaries={categoryBudgetSummaries} dailyData={dailyChartData} />
         </div>
 
         {isLoading ? (
