@@ -6,6 +6,7 @@ interface BudgetSummaryBadgeProps {
   spentCents: number;
   maxBudget: number;
   isWarning: boolean;
+  isAtLimit: boolean;
   isExceeded: boolean;
 }
 
@@ -13,13 +14,16 @@ export default function BudgetSummaryBadge({
   spentCents,
   maxBudget,
   isWarning,
+  isAtLimit,
   isExceeded,
 }: BudgetSummaryBadgeProps) {
   const textColourClass = isExceeded
     ? 'text-red-600'
-    : isWarning
-      ? 'text-amber-600'
-      : 'text-slate-600';
+    : isAtLimit
+      ? 'text-orange-600'
+      : isWarning
+        ? 'text-amber-600'
+        : 'text-slate-600';
 
   return (
     <p className={`text-sm font-medium ${textColourClass}`}>

@@ -54,21 +54,33 @@ describe('computeCategoryBudgets', () => {
     expect(summary.remainingCents).toBe(7000);
   });
 
-  it('sets isWarning true when usage is at or above 80% but not exceeded', () => {
+  it('sets isWarning true when usage is at or above 80% but below 100%', () => {
     const transactions = [makeExpense('cat-1', 8000)];
 
     const [summary] = computeCategoryBudgets([baseCategory], transactions);
 
     expect(summary.isWarning).toBe(true);
+    expect(summary.isAtLimit).toBe(false);
     expect(summary.isExceeded).toBe(false);
   });
 
-  it('sets isExceeded true and isWarning false when spending exceeds budget', () => {
+  it('sets isAtLimit true and isWarning/isExceeded false when spending equals budget', () => {
+    const transactions = [makeExpense('cat-1', 10000)];
+
+    const [summary] = computeCategoryBudgets([baseCategory], transactions);
+
+    expect(summary.isAtLimit).toBe(true);
+    expect(summary.isWarning).toBe(false);
+    expect(summary.isExceeded).toBe(false);
+  });
+
+  it('sets isExceeded true and isWarning/isAtLimit false when spending exceeds budget', () => {
     const transactions = [makeExpense('cat-1', 11000)];
 
     const [summary] = computeCategoryBudgets([baseCategory], transactions);
 
     expect(summary.isExceeded).toBe(true);
+    expect(summary.isAtLimit).toBe(false);
     expect(summary.isWarning).toBe(false);
   });
 
@@ -78,6 +90,7 @@ describe('computeCategoryBudgets', () => {
     expect(summary.spentCents).toBe(0);
     expect(summary.usageRatio).toBe(0);
     expect(summary.isWarning).toBe(false);
+    expect(summary.isAtLimit).toBe(false);
     expect(summary.isExceeded).toBe(false);
   });
 

@@ -6,6 +6,7 @@ export interface CategoryBudgetSummary extends Category {
   remainingCents: number;
   usageRatio: number;
   isWarning: boolean;
+  isAtLimit: boolean;
   isExceeded: boolean;
 }
 
@@ -27,7 +28,8 @@ export function computeCategoryBudgets(
       spentCents,
       remainingCents,
       usageRatio,
-      isWarning: usageRatio >= 0.8 && usageRatio <= 1.0,
+      isWarning: usageRatio >= 0.8 && usageRatio < 1.0,
+      isAtLimit: usageRatio === 1.0,
       isExceeded: usageRatio > 1.0,
     };
   });

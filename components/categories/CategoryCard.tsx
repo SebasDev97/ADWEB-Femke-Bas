@@ -79,18 +79,23 @@ export default function CategoryCard({
         spentCents={summary.spentCents}
         maxBudget={summary.maxBudget}
         isWarning={summary.isWarning}
+        isAtLimit={summary.isAtLimit}
         isExceeded={summary.isExceeded}
       />
       <div className="mt-2">
         <BudgetProgressBar
           usageRatio={summary.usageRatio}
           isWarning={summary.isWarning}
+          isAtLimit={summary.isAtLimit}
           isExceeded={summary.isExceeded}
         />
       </div>
 
       {summary.isExceeded && (
         <p className="mt-2 text-xs font-medium text-red-600">Over budget</p>
+      )}
+      {summary.isAtLimit && (
+        <p className="mt-2 text-xs font-medium text-orange-600">At budget limit</p>
       )}
       {summary.isWarning && (
         <p className="mt-2 text-xs font-medium text-amber-600">Almost at budget limit</p>
