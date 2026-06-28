@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { collection, query, where, getDocs, updateDoc, doc, or, and, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, or, and, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { useAuth } from '@/context/AuthContext';
 import type { Householdbook } from '@/types/householdbook';
@@ -29,29 +29,26 @@ export default function HuishoudboekjesPage() {
   useEffect(() => {
     if (!user) return;
 
-    async function fetchBooks() {
-      setFetching(true);
-      const q = query(
-        collection(db, 'householdbooks'),
-        and(
-          where('archived', '==', false),
-          or(
-            where('ownerId', '==', user!.uid),
-            where('members', 'array-contains', user!.uid)
-          )
+    setFetching(true);
+    const q = query(
+      collection(db, 'householdbooks'),
+      and(
+        where('archived', '==', false),
+        or(
+          where('ownerId', '==', user.uid),
+          where('members', 'array-contains', user.uid)
         )
-      );
-      const snapshot = await getDocs(q);
+      )
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       setBooks(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Householdbook)));
       setFetching(false);
-    }
-
-    fetchBooks();
+    });
+    return unsubscribe;
   }, [user]);
 
   const archiveBook = async (id: string) => {
     await updateDoc(doc(db, 'householdbooks', id), { archived: true });
-    setBooks((prev) => prev.filter((b) => b.id !== id));
   };
 
   const openInviteModal = async (book: Householdbook) => {

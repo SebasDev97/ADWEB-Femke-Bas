@@ -88,7 +88,7 @@ describe('deleteCategory', () => {
     ];
     (getDocs as jest.Mock).mockResolvedValue({ docs: linkedTransactionDocs });
 
-    await deleteCategory(mockDb, 'cat-1');
+    await deleteCategory(mockDb, 'cat-1', 'book-1');
 
     expect(getDocs).toHaveBeenCalled();
     expect(mockBatch.update).toHaveBeenCalledWith({ id: 'tx-1' }, { categoryId: null });

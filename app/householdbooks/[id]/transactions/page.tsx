@@ -20,6 +20,7 @@ import { useCategories } from '@/hooks/useCategories';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategoryBudget } from '@/hooks/useCategoryBudget';
 import { deleteTransaction, assignCategory } from '@/services/transactionService';
+import { deleteCategory } from '@/services/categoryService';
 import TransactionItem from '@/components/transactions/TransactionItem';
 import TransactionList from '@/components/transactions/TransactionList';
 import TransactionStatistics from '@/components/transactions/TransactionStatistics';
@@ -98,6 +99,7 @@ export default function TransactionsPage() {
   const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear());
   const [collapsedCategoryIds, setCollapsedCategoryIds] = useState<string[]>([]);
   const [transactionIdPendingDeletion, setTransactionIdPendingDeletion] = useState<string | null>(null);
+  const [categoryIdPendingDeletion, setCategoryIdPendingDeletion] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState('');
   const [activeDragTransaction, setActiveDragTransaction] = useState<Transaction | null>(null);
   const [dragOverDroppableId, setDragOverDroppableId] = useState<string | null>(null);
@@ -231,6 +233,18 @@ export default function TransactionsPage() {
     }
   }
 
+  async function handleDeleteCategoryConfirmed() {
+    if (!categoryIdPendingDeletion) return;
+    setDeleteError('');
+    try {
+      await deleteCategory(db, categoryIdPendingDeletion, bookId);
+    } catch {
+      setDeleteError('Failed to delete category. Please try again.');
+    } finally {
+      setCategoryIdPendingDeletion(null);
+    }
+  }
+
   const isLoading = categoriesLoading || transactionsLoading;
 
   return (
@@ -336,7 +350,7 @@ export default function TransactionsPage() {
                           <DroppableCategoryCard
                             summary={summary}
                             bookId={bookId}
-                            onDelete={(categoryId) => setTransactionIdPendingDeletion(categoryId)}
+                            onDelete={(categoryId) => setCategoryIdPendingDeletion(categoryId)}
                             dragOverCategoryId={dragOverDroppableId}
                             isCollapsed={isCollapsed}
                             onToggleCollapse={() => toggleCategoryCollapse(summary.id)}
@@ -420,6 +434,15 @@ export default function TransactionsPage() {
           confirmLabel="Delete"
           onConfirm={handleDeleteConfirmed}
           onCancel={() => setTransactionIdPendingDeletion(null)}
+        />
+      )}
+
+      {categoryIdPendingDeletion && (
+        <ConfirmDialog
+          message="Delete this category? All linked transactions will be uncategorised."
+          confirmLabel="Delete"
+          onConfirm={handleDeleteCategoryConfirmed}
+          onCancel={() => setCategoryIdPendingDeletion(null)}
         />
       )}
     </div>
