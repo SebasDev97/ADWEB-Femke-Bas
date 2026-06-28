@@ -3,10 +3,16 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { collection, query, where, getDocs, updateDoc, doc, or, and, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { useAuth } from '@/context/AuthContext';
 import type { Householdbook } from '@/types/householdbook';
+import {
+  subscribeToActiveBooks,
+  archiveBook,
+  getMemberEmails,
+  lookupUserByEmail,
+  updateBookMembers,
+} from '@/services/householdbookService';
 import Navbar from '@/components/Navbar';
 
 export default function HuishoudboekjesPage() {
@@ -29,38 +35,24 @@ export default function HuishoudboekjesPage() {
   useEffect(() => {
     if (!user) return;
 
-    setFetching(true);
-    const q = query(
-      collection(db, 'householdbooks'),
-      and(
-        where('archived', '==', false),
-        or(
-          where('ownerId', '==', user.uid),
-          where('members', 'array-contains', user.uid)
-        )
-      )
+    const unsubscribe = subscribeToActiveBooks(
+      db,
+      user.uid,
+      (fetchedBooks) => { setBooks(fetchedBooks); setFetching(false); },
+      () => setFetching(false),
     );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setBooks(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Householdbook)));
-      setFetching(false);
-    });
     return unsubscribe;
   }, [user]);
 
-  const archiveBook = async (id: string) => {
-    await updateDoc(doc(db, 'householdbooks', id), { archived: true });
+  const handleArchiveBook = async (id: string) => {
+    await archiveBook(db, id);
   };
 
   const openInviteModal = async (book: Householdbook) => {
     setSelectedBook(book);
     setMembers(book.members ?? []);
     if (book.members?.length) {
-      const emailMap: Record<string, string> = {};
-      for (const uid of book.members) {
-        const userSnap = await getDoc(doc(db, 'users', uid));
-        if (userSnap.exists()) emailMap[uid] = userSnap.data().email ?? uid;
-      }
-      setMemberEmails(emailMap);
+      setMemberEmails(await getMemberEmails(db, book.members));
     } else {
       setMemberEmails({});
     }
@@ -83,16 +75,14 @@ export default function HuishoudboekjesPage() {
     setInviteError('');
     const email = inviteEmail.trim().toLowerCase();
     try {
-      const q = query(collection(db, 'users'), where('email', '==', email));
-      const snap = await getDocs(q);
-      if (snap.empty) { setInviteError('No user found with that email.'); return; }
-      const invitedUid = snap.docs[0].id;
+      const invitedUid = await lookupUserByEmail(db, email);
+      if (!invitedUid) { setInviteError('No user found with that email.'); return; }
       if (invitedUid === user.uid || members.includes(invitedUid)) {
         setInviteError('This user is already a member.');
         return;
       }
       const newMembers = [...members, invitedUid];
-      await updateDoc(doc(db, 'householdbooks', selectedBook.id), { members: newMembers });
+      await updateBookMembers(db, selectedBook.id, newMembers);
       setMembers(newMembers);
       setMemberEmails((prev) => ({ ...prev, [invitedUid]: email }));
       setInviteEmail('');
@@ -104,7 +94,7 @@ export default function HuishoudboekjesPage() {
   const removeMember = async (uid: string) => {
     if (!selectedBook) return;
     const newMembers = members.filter((m) => m !== uid);
-    await updateDoc(doc(db, 'householdbooks', selectedBook.id), { members: newMembers });
+    await updateBookMembers(db, selectedBook.id, newMembers);
     setMembers(newMembers);
     setMemberEmails((prev) => {
       const next = { ...prev };
@@ -217,7 +207,7 @@ export default function HuishoudboekjesPage() {
                         Invite
                       </button>
                       <button
-                        onClick={() => archiveBook(book.id)}
+                        onClick={() => handleArchiveBook(book.id)}
                         className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 px-2.5 py-1.5 rounded-lg transition-colors"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

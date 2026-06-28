@@ -41,7 +41,7 @@ export default function CategoryCard({
           <div className="flex items-center gap-2">
             <p className="font-semibold text-slate-900 truncate">{summary.name}</p>
             <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
-              {transactionCount} transactions
+              {transactionCount} {transactionCount === 1 ? "transaction" : "transactions"}
             </span>
           </div>
           {endDateLabel && (

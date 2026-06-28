@@ -1,5 +1,7 @@
 import {
   createTransaction,
+  updateTransaction,
+  deleteTransaction,
   assignCategory,
   subscribeToTransactions,
 } from '@/services/transactionService';
@@ -22,7 +24,7 @@ jest.mock('firebase/firestore', () => ({
   serverTimestamp: jest.fn(() => 'SERVER_TIMESTAMP'),
 }));
 
-import { addDoc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { addDoc, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import type { Timestamp } from 'firebase/firestore';
 import { testDb } from '../helpers/testFirestore';
 
@@ -60,6 +62,26 @@ describe('createTransaction', () => {
       createdAt: 'SERVER_TIMESTAMP',
     });
     expect(newTransactionId).toBe('tx-123');
+  });
+});
+
+describe('updateTransaction', () => {
+  it('calls updateDoc with the provided patch', async () => {
+    (updateDoc as jest.Mock).mockResolvedValue(undefined);
+
+    await updateTransaction(mockDb, 'tx-1', { amountCents: 3000, description: 'Updated' });
+
+    expect(updateDoc).toHaveBeenCalledWith({ id: 'tx-1' }, { amountCents: 3000, description: 'Updated' });
+  });
+});
+
+describe('deleteTransaction', () => {
+  it('calls deleteDoc with the correct transaction ref', async () => {
+    (deleteDoc as jest.Mock).mockResolvedValue(undefined);
+
+    await deleteTransaction(mockDb, 'tx-1');
+
+    expect(deleteDoc).toHaveBeenCalledWith({ id: 'tx-1' });
   });
 });
 
