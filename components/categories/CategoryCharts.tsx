@@ -20,7 +20,7 @@ export default function CategoryCharts({ summaries, dailyData }: CategoryChartsP
 
   const lineChartHasData = dailyData && dailyData.length > 0;
   const lineChartSeries = lineChartHasData
-    ? [{ data: dailyData.map((d) => d.income), label: 'Inkomsten', color: '#16a34a' }, { data: dailyData.map((d) => d.expenses), label: 'Uitgaven', color: '#dc2626' }]
+    ? [{ data: dailyData.map((d) => d.income), label: 'Income', color: '#16a34a' }, { data: dailyData.map((d) => d.expenses), label: 'Expenses', color: '#dc2626' }]
     : [];
   const lineChartXLabels = lineChartHasData ? dailyData.map((d) => d.day) : [];
 
@@ -29,10 +29,10 @@ export default function CategoryCharts({ summaries, dailyData }: CategoryChartsP
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 my-8">
       <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-        <h3 className="text-lg font-semibold text-slate-800 mb-4">Uitgaven per Categorie</h3>
+        <h3 className="text-lg font-semibold text-slate-800 mb-4">Expenses per category</h3>
         <div style={{ width: '100%', height: 300 }}>
           <BarChart
-            series={[{ data: barChartData, label: 'Uitgaven', color: '#4f46e5' }]}
+            series={[{ data: barChartData, label: 'Expenses', color: '#4f46e5' }]}
             xAxis={[{ scaleType: 'band', data: barChartXLabels }]}
             yAxis={[{ valueFormatter: euroFormatter }]}
             margin={{ top: 10, right: 20, bottom: 30, left: 50 }}
@@ -42,7 +42,7 @@ export default function CategoryCharts({ summaries, dailyData }: CategoryChartsP
         </div>
       </div>
       <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-        <h3 className="text-lg font-semibold text-slate-800 mb-4">Balans per Dag</h3>
+        <h3 className="text-lg font-semibold text-slate-800 mb-4">Cumulative balance per day</h3>
         <div style={{ width: '100%', height: 300 }}>
           {lineChartHasData ? (
             <LineChart
@@ -56,7 +56,7 @@ export default function CategoryCharts({ summaries, dailyData }: CategoryChartsP
             </LineChart>
           ) : (
             <div className="flex items-center justify-center h-full text-slate-400">
-              <p>Geen transacties gevonden om een grafiek te tonen.</p>
+              <p>No data to show graph.</p>
             </div>
           )}
         </div>

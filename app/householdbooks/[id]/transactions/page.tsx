@@ -139,11 +139,19 @@ export default function TransactionsPage() {
       }
     });
 
-    return Array.from(dailyTotals.entries()).map(([day, totals]) => ({
+    const sortedDailyData = Array.from(dailyTotals.entries()).map(([day, totals]) => ({
       day: day,
       income: totals.income / 100,
       expenses: totals.expenses / 100,
     }));
+
+    let cumulativeIncome = 0;
+    let cumulativeExpenses = 0;
+    return sortedDailyData.map((data) => {
+      cumulativeIncome += data.income;
+      cumulativeExpenses += data.expenses;
+      return { ...data, income: cumulativeIncome, expenses: cumulativeExpenses };
+    });
   }, [filteredTransactions, selectedMonth, selectedYear]);
 
   function toggleCategoryCollapse(categoryId: string) {
